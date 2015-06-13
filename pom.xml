@@ -6,7 +6,7 @@
 
     <groupId>net.virtualinfinity</groupId>
     <artifactId>net.virtualinfinity.nio</artifactId>
-    <version>1.0</version>
+    <version>1.0.0</version>
 
     <packaging>jar</packaging>
 
@@ -17,6 +17,13 @@
             <distribution>repo</distribution>
         </license>
     </licenses>
+    <distributionManagement>
+        <repository>
+            <id>net.virtualinfinity.maven</id>
+            <name>VirtualInfinity.net maven repo</name>
+            <url>scpexe://virtualinfinity.net/usr/share/nginx/sites/maven.virtualinfinity.net</url>
+        </repository>
+    </distributionManagement>
     <build>
         <plugins>
             <plugin>
@@ -28,6 +35,14 @@
                 <version>2.3.2</version>
             </plugin>
         </plugins>
+        <extensions>
+             <!-- Enabling the use of SSH -->
+             <extension>
+               <groupId>org.apache.maven.wagon</groupId>
+                <artifactId>wagon-ssh-external</artifactId>
+                <version>1.0-beta-6</version>
+             </extension>
+           </extensions>
     </build>
     <scm>
         <url>https://github.com/DanielPitts/net.virtualinfinity.telnet.git</url>
