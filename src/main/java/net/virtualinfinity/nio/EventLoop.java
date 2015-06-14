@@ -64,20 +64,28 @@ public class EventLoop implements Closeable {
             running = true;
         }
         try {
-            while (selector.isOpen()) {
-                final Event nextEvent = executePendingEvents();
-                if (nextEvent != null) {
-                    select(nextEvent.timeRemaining(TimeUnit.MILLISECONDS));
-                } else {
-                    select(0);
-                }
-                executeSelected();
+            while (running) {
+                running = doSelect(timeout(executePendingEvents()));
             }
         } finally {
             synchronized (this) {
                 running = false;
             }
         }
+    }
+
+    private boolean doSelect(long timeout) throws IOException {
+        if (!selector.isOpen()) {
+            return false;
+        }
+        select(timeout);
+        executeSelected();
+
+        return selector.isOpen();
+    }
+
+    private long timeout(Event nextEvent) {
+        return nextEvent != null ? nextEvent.timeRemaining(TimeUnit.MILLISECONDS) : 0;
     }
 
     /**

@@ -6,7 +6,7 @@
 
     <groupId>net.virtualinfinity</groupId>
     <artifactId>net.virtualinfinity.nio</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
 
     <packaging>jar</packaging>
 
@@ -30,6 +30,15 @@
             <url>scpexe://virtualinfinity.net/usr/share/nginx/sites/maven.virtualinfinity.net/sites/${project.artifactId}/${project.version}/</url>
         </site>
     </distributionManagement>
+
+    <dependencies>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.10</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
     <build>
         <plugins>
             <plugin>
