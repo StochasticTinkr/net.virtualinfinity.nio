@@ -63,18 +63,30 @@ public class EventLoop implements Closeable {
             }
             running = true;
         }
-        while (selector.isOpen()) {
-            final Event nextEvent = executePendingEvents();
-            if (nextEvent != null) {
-                select(nextEvent.timeRemaining(TimeUnit.MILLISECONDS));
-            } else {
-                select(0);
+        try {
+            while (selector.isOpen()) {
+                final Event nextEvent = executePendingEvents();
+                if (nextEvent != null) {
+                    select(nextEvent.timeRemaining(TimeUnit.MILLISECONDS));
+                } else {
+                    select(0);
+                }
+                executeSelected();
             }
-            executeSelected();
+        } finally {
+            synchronized (this) {
+                running = false;
+            }
         }
-        running = false;
     }
 
+    /**
+     * Calls select on the selector, delegating exception management to the exception handler.
+     *
+     * @param timeout the timeout parameter to the {@link Selector#select(long)} call.
+     *
+     * @throws IOException if there is an exception thrown by the exception handler.
+     */
     private void select(long timeout) throws IOException {
         try {
             selector.select(timeout);
@@ -83,6 +95,12 @@ public class EventLoop implements Closeable {
         }
     }
 
+    /**
+     * Loops through all the selected keys, and executes there Runnable or selected methods.
+     * This method delegates exception management to the exception handler.
+     *
+     * @throws IOException if there is an exception thrown by the exception handler.
+     */
     private void executeSelected() throws IOException {
         for (final Iterator<SelectionKey> iterator = selector.selectedKeys().iterator(); iterator.hasNext(); ) {
             final SelectionKey key = iterator.next();
@@ -194,6 +212,17 @@ public class EventLoop implements Closeable {
         doRegister(channel, ops, handler);
     }
 
+    /**
+     * Registers the channel with the selector.
+     *
+     * @param channel the channel to register
+     * @param ops the interestOps.
+     * @param handler the handler.
+     *
+     * @return The corresponding SelectionKey.
+     *
+     * @throws ClosedChannelException if the channel is closed.
+     */
     private SelectionKey doRegister(SelectableChannel channel, int ops, SelectionKeyHandler handler) throws ClosedChannelException {
         return channel.register(selector, ops, handler);
     }
@@ -206,6 +235,9 @@ public class EventLoop implements Closeable {
         selector.close();
     }
 
+    /**
+     * Priority queue event item.
+     */
     private static class Event implements Comparable<Event>, Runnable {
         private final long desiredTimeNanos;
         private final Runnable handler;

@@ -18,11 +18,17 @@
         </license>
     </licenses>
     <distributionManagement>
+        <downloadUrl>http://maven.virtualinfinity.net/</downloadUrl>
         <repository>
             <id>net.virtualinfinity.maven</id>
             <name>VirtualInfinity.net maven repo</name>
             <url>scpexe://virtualinfinity.net/usr/share/nginx/sites/maven.virtualinfinity.net</url>
         </repository>
+        <site>
+            <id>net.virtualinfinity.maven</id>
+            <name>VirtualInfinity.net maven repo</name>
+            <url>scpexe://virtualinfinity.net/usr/share/nginx/sites/maven.virtualinfinity.net/sites/${project.artifactId}/${project.version}/</url>
+        </site>
     </distributionManagement>
     <build>
         <plugins>
@@ -58,31 +64,39 @@
             </extension>
         </extensions>
     </build>
-
+    <reporting>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>2.10.3</version>
+            </plugin>
+        </plugins>
+    </reporting>
     <profiles>
-       <profile>
-         <id>release</id>
-         <build>
-           <plugins>
-             <plugin>
-               <groupId>org.apache.maven.plugins</groupId>
-               <artifactId>maven-source-plugin</artifactId>
-               <version>2.4</version>
-               <executions>
-                 <execution>
-                   <id>attach-sources</id>
-                   <goals>
-                     <goal>jar-no-fork</goal>
-                   </goals>
-                 </execution>
-               </executions>
-             </plugin>
-           </plugins>
-         </build>
-       </profile>
-     </profiles>
+        <profile>
+            <id>release</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <version>2.4</version>
+                        <executions>
+                            <execution>
+                                <id>attach-sources</id>
+                                <goals>
+                                    <goal>jar-no-fork</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
     <scm>
-        <url>https://github.com/DanielPitts/net.virtualinfinity.telnet.git</url>
+        <url>https://github.com/DanielPitts/net.virtualinfinity.nio.git</url>
     </scm>
 
 </project>
