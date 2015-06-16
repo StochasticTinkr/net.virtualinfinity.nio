@@ -1,5 +1,5 @@
 # net.virtualinfinity.nio
-Basic NIO and EventLoop.
+## Basic NIO and EventLoop.
 
 This library provides a [EventLoop](src/main/java/net/virtualinfinity/nio/EventLoop.java) class,
 which and aid in creating NIO based applications.
@@ -23,4 +23,3 @@ A typical "main" might look like this:
 
         eventLoop.run();
     }
-

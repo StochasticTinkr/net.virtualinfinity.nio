@@ -17,7 +17,7 @@ import java.util.concurrent.TimeUnit;
  *
  * @author <a href='mailto:Daniel@coloraura.com'>Daniel Pitts</a>
  */
-public class EventLoop implements Closeable {
+public final class EventLoop implements Closeable {
     private final Selector selector;
     private final ExceptionHandler<IOException> handler;
     private final Queue<Event> events = new PriorityQueue<>();
@@ -54,7 +54,7 @@ public class EventLoop implements Closeable {
 
     /**
      * Runs the event loop, dispatching events and listening to {@link SelectableChannel}
-     * @throws IOException
+     * @throws IOException if an IOException occurs during processing and the exception handler throws.
      */
     public void run() throws IOException {
         synchronized (this) {
@@ -98,7 +98,7 @@ public class EventLoop implements Closeable {
     private void select(long timeout) throws IOException {
         try {
             selector.select(timeout);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             handler.handleException(null, e);
         }
     }
@@ -114,13 +114,14 @@ public class EventLoop implements Closeable {
             final SelectionKey key = iterator.next();
             try {
                 final Object attachment = key.attachment();
+                //noinspection ChainOfInstanceofChecks
                 if (attachment instanceof SelectionKeyHandler) {
                     ((SelectionKeyHandler) attachment).selected();
                 } else if (attachment instanceof Runnable) {
                     ((Runnable)attachment).run();
                 }
                 iterator.remove();
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 handler.handleException(key, e);
             }
         }
@@ -198,7 +199,7 @@ public class EventLoop implements Closeable {
      * @param channel The channel.
      * @param handlers The handlers for the selected channel.
      *
-     * @throws ClosedChannelException
+     * @throws ClosedChannelException the the channel was closed
      */
     public void registerHandler(SelectableChannel channel, SelectionKeyActions handlers) throws ClosedChannelException {
       handlers.setSelectionKey(doRegister(channel, handlers.interestOps(), handlers));
@@ -212,7 +213,7 @@ public class EventLoop implements Closeable {
      * @param ops The valid operations. {@link SelectionKey}
      * @param handler The handler for the selected channel.
      *
-     * @throws ClosedChannelException
+     * @throws ClosedChannelException if the channel is closed.
      *
      * @see SelectableChannel#register(Selector, int)
      */
