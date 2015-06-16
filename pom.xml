@@ -6,7 +6,7 @@
 
     <groupId>net.virtualinfinity</groupId>
     <artifactId>net.virtualinfinity.nio</artifactId>
-    <version>1.0.2</version>
+    <version>dev-new-io</version>
 
     <packaging>jar</packaging>
 
