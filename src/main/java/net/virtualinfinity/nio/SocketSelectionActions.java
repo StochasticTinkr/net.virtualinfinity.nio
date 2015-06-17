@@ -135,7 +135,7 @@ public class SocketSelectionActions implements SelectionKeyActions {
     }
 
     protected boolean interestedInConnect() {
-        return false;
+        return channel().isConnectionPending();
     }
 
     private boolean interestedInRead() {
