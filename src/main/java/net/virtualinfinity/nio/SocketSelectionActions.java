@@ -57,6 +57,12 @@ public class SocketSelectionActions implements SelectionKeyActions {
 
     @Override
     public void setSelectionKey(SelectionKey selectionKey) {
+        if (this.selectionKey != null && selectionKey == null) {
+            outputBuffer.removeNewDataListener(this::updateInterests);
+        }
+        if (this.selectionKey == null && selectionKey != null) {
+            outputBuffer.addNewDataListener(this::updateInterests);
+        }
         this.selectionKey = selectionKey;
     }
 

@@ -2,9 +2,7 @@ package net.virtualinfinity.nio;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.Deque;
-import java.util.Iterator;
-import java.util.LinkedList;
+import java.util.*;
 
 /**
  * A byte buffer queue useful for non blocking output. This output buffer keeps a queue of
@@ -27,6 +25,7 @@ import java.util.LinkedList;
  * @author <a href='mailto:Daniel@coloraura.com'>Daniel Pitts</a>
  */
 public final class OutputBuffer {
+    private final List<Runnable> newDataListeners = new ArrayList<>();
     private final int minimumBufferSize;
     private final Deque<ByteBuffer> buffers = new LinkedList<>();
     private long remaining;
@@ -70,7 +69,9 @@ public final class OutputBuffer {
             BufferUtils.putWhatFits(buffers.getLast(), data);
         }
         appendRemaining(data);
-
+        if (remaining == count) {
+            newDataListeners.forEach(Runnable::run);
+        }
         return count;
     }
 
@@ -166,5 +167,13 @@ public final class OutputBuffer {
      */
     private ByteBuffer doAllocate(int size) {
         return ByteBuffer.allocateDirect(size);
+    }
+
+    public void removeNewDataListener(Runnable listener) {
+        newDataListeners.remove(listener);
+    }
+    public void addNewDataListener(Runnable listener) {
+        newDataListeners.add(listener);
+
     }
 }
