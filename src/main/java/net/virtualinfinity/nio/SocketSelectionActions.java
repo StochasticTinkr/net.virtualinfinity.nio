@@ -24,7 +24,7 @@ public class SocketSelectionActions implements SelectionKeyActions {
      *
      * @param channel the channel.
      * @param connectionListener The connection listener to be notified about connections.
-     * @param receiver The object that will receive data read from the socket
+     * @param receiver The object that will receive data read from the socket.  This receiver should fully process all data to ensure the input buffer doesn't overflow.
      * @param outputBuffer The output buffer that will be sent over the socket.
      * @param sendAllBeforeReading Whether or not the outputBuffer should be fully flushed before new input is processed.
      * @param inputBufferSize The input buffer size.
@@ -112,6 +112,7 @@ public class SocketSelectionActions implements SelectionKeyActions {
             }
             inputBuffer.flip();
             receiver.accept(inputBuffer);
+            inputBuffer.compact();
         }
     }
 
