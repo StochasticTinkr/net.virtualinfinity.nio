@@ -4,19 +4,18 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
-import java.nio.channels.SocketChannel;
 
 /**
  * @author <a href='mailto:Daniel@coloraura.com'>Daniel Pitts</a>
  */
 public class SocketSelectionActions implements SelectionKeyActions {
-    private final SocketChannel channel;
+    private final SocketChannelInterface channel;
     private final ConnectionListener connectionListener;
     private final ByteBufferConsumer receiver;
     private final boolean sendAllBeforeReading;
     private final ByteBuffer inputBuffer;
     private final OutputBuffer outputBuffer;
-    private SelectionKey selectionKey;
+    private SelectionKeyInterface selectionKey;
 
     /**
      * Construct a new SocketSelectionActions, which will be able to manage finishing connections, and transferring data
@@ -29,7 +28,7 @@ public class SocketSelectionActions implements SelectionKeyActions {
      * @param sendAllBeforeReading Whether or not the outputBuffer should be fully flushed before new input is processed.
      * @param inputBufferSize The input buffer size.
      */
-    public SocketSelectionActions(SocketChannel channel, ConnectionListener connectionListener, ByteBufferConsumer receiver, OutputBuffer outputBuffer, int inputBufferSize, boolean sendAllBeforeReading) {
+    public SocketSelectionActions(SocketChannelInterface channel, ConnectionListener connectionListener, ByteBufferConsumer receiver, OutputBuffer outputBuffer, int inputBufferSize, boolean sendAllBeforeReading) {
         this.channel = channel;
         this.connectionListener = connectionListener;
         this.receiver = receiver;
@@ -40,7 +39,7 @@ public class SocketSelectionActions implements SelectionKeyActions {
 
 
     public void register(EventLoop loop) throws ClosedChannelException {
-        loop.registerHandler(channel(), this);
+        loop.registerHandler(channel().selectableChannel(), this);
     }
 
     @Override
@@ -56,7 +55,7 @@ public class SocketSelectionActions implements SelectionKeyActions {
     }
 
     @Override
-    public void setSelectionKey(SelectionKey selectionKey) {
+    public void setSelectionKey(SelectionKeyInterface selectionKey) {
         if (this.selectionKey != null && selectionKey == null) {
             outputBuffer.removeNewDataListener(this::updateInterests);
         }
@@ -116,7 +115,7 @@ public class SocketSelectionActions implements SelectionKeyActions {
         }
     }
 
-    protected SocketChannel channel() {
+    protected SocketChannelInterface channel() {
         return channel;
     }
 
@@ -146,4 +145,5 @@ public class SocketSelectionActions implements SelectionKeyActions {
     private boolean interestedInWrite() {
         return outputBuffer.hasRemaining();
     }
+
 }

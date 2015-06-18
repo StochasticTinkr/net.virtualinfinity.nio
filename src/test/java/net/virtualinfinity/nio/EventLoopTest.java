@@ -83,10 +83,10 @@ public class EventLoopTest {
         final Pipe.SourceChannel source = pipe.source();
         source.configureBlocking(false);
         eventLoop.registerHandler(source, new SelectionKeyActions() {
-            private SelectionKey selectionKey;
+            private SelectionKeyInterface selectionKey;
 
             @Override
-            public void setSelectionKey(SelectionKey selectionKey) {
+            public void setSelectionKey(SelectionKeyInterface selectionKey) {
                 this.selectionKey = selectionKey;
                 ran[1] = selectionKey.isReadable();
             }
@@ -97,7 +97,7 @@ public class EventLoopTest {
             }
 
             @Override
-            public void selected() throws IOException {
+            public void selected() {
                 ran[0] = true;
                 ran[1] = selectionKey.isReadable();
                 time[0] = System.nanoTime();

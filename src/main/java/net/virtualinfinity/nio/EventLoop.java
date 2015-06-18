@@ -232,8 +232,8 @@ public final class EventLoop implements Closeable {
      *
      * @throws ClosedChannelException if the channel is closed.
      */
-    private SelectionKey doRegister(SelectableChannel channel, int ops, SelectionKeyHandler handler) throws ClosedChannelException {
-        return channel.register(selector, ops, handler);
+    private SelectionKeyInterface doRegister(SelectableChannel channel, int ops, SelectionKeyHandler handler) throws ClosedChannelException {
+        return new SelectionKeyWrapper(channel.register(selector, ops, handler));
     }
 
     /**
