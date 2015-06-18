@@ -75,29 +75,42 @@ public class SocketSelectionActions implements SelectionKeyActions {
     }
 
     protected void doSelectedActions() throws IOException {
-        if (!channel.isOpen()) {
-            throw new ClosedChannelException();
-        }
-        if (channel.isConnectionPending()) {
-            if (selectionKey.isConnectable()) {
-                try {
-                    if (channel.finishConnect()) {
-                        connectionListener.connected();
-                    } else {
-                        return;
-                    }
-                } catch (final IOException exception) {
-                    connectionListener.connectionFailed(exception);
-                }
-            } else {
-                return;
-            }
+        validateChannel();
+        if (!doConnectionActions()) {
+            return;
         }
         if (!channel.isConnected()) {
             connectionListener.disconnected();
             return;
         }
         doReadWriteActions();
+    }
+
+    private boolean doConnectionActions() {
+        if (channel.isConnectionPending()) {
+            if (selectionKey.isConnectable()) {
+                try {
+                    if (channel.finishConnect()) {
+                        connectionListener.connected();
+                    } else {
+                        return false;
+                    }
+                } catch (final IOException exception) {
+                    connectionListener.connectionFailed(exception);
+                    selectionKey.cancel();
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private void validateChannel() throws ClosedChannelException {
+        if (!channel.isOpen()) {
+            throw new ClosedChannelException();
+        }
     }
 
     private void doReadWriteActions() throws IOException {

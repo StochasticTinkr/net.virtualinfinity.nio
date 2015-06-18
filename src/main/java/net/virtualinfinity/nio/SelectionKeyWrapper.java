@@ -41,4 +41,9 @@ public class SelectionKeyWrapper implements SelectionKeyInterface {
     public void interestOps(int ops) {
         selectionKey.interestOps(ops);
     }
+
+    @Override
+    public void cancel() {
+        selectionKey.cancel();
+    }
 }

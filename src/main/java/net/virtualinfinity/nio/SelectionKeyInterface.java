@@ -10,5 +10,5 @@ public interface SelectionKeyInterface {
     boolean isReadable();
     boolean isValid();
     void interestOps(int ops);
-
+    void cancel();
 }
