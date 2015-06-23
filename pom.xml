@@ -23,6 +23,7 @@
             <id>net.virtualinfinity.maven</id>
             <name>VirtualInfinity.net maven repo</name>
             <url>scpexe://virtualinfinity.net/usr/share/nginx/sites/maven.virtualinfinity.net</url>
+            <uniqueVersion>true</uniqueVersion>
         </repository>
         <site>
             <id>net.virtualinfinity.maven</id>
