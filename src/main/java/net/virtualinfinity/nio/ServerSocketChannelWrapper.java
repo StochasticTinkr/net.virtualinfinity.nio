@@ -10,7 +10,15 @@ import java.nio.channels.SocketChannel;
  * @author <a href='mailto:Daniel@coloraura.com'>Daniel Pitts</a>
  */
 public class ServerSocketChannelWrapper implements ServerSocketChannelInterface {
-    public static final ChannelProvider<ServerSocketChannelInterface> PROVIDER = () -> new ServerSocketChannelWrapper(ServerSocketChannel.open());
+    private static class DefaultProvider implements ChannelProvider<ServerSocketChannelInterface> {
+        @Override
+        public ServerSocketChannelInterface open() throws IOException {
+            return new ServerSocketChannelWrapper(ServerSocketChannel.open());
+        }
+    }
+
+    public static final ChannelProvider<ServerSocketChannelInterface> PROVIDER = new DefaultProvider();
+
     private final ServerSocketChannel channel;
 
     public ServerSocketChannelWrapper(ServerSocketChannel channel) {

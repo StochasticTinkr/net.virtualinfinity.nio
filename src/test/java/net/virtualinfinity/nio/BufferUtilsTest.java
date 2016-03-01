@@ -14,23 +14,23 @@ public class BufferUtilsTest {
     @Test
     public void putWhatFitsByteBufferOverflow() {
         final ByteBuffer src = ByteBuffer.wrap(new byte[] {1, 2, 3});
-        final ByteBuffer dest = ByteBuffer.allocate(2);
-        BufferUtils.putWhatFits(dest, src);
+        final ByteBuffer dst = ByteBuffer.allocate(2);
+        BufferUtils.putWhatFits(dst, src);
         assertEquals("3 should be the remainder of src", 3, src.get());
-        dest.flip();
-        assertEquals(1, dest.get());
-        assertEquals(2, dest.get());
+        dst.flip();
+        assertEquals(1, dst.get());
+        assertEquals(2, dst.get());
     }
 
     @Test
     public void putWhatFitsByteBufferUnderflow() {
         final ByteBuffer src = ByteBuffer.wrap(new byte[] {1, 2});
-        final ByteBuffer dest = ByteBuffer.allocate(3);
-        BufferUtils.putWhatFits(dest, src);
+        final ByteBuffer dst = ByteBuffer.allocate(3);
+        BufferUtils.putWhatFits(dst, src);
         assertFalse(src.hasRemaining());
-        assertEquals("Should have space still in dest.", 1, dest.remaining());
-        dest.flip();
-        assertEquals(1, dest.get());
-        assertEquals(2, dest.get());
+        assertEquals("Should have space still in dst.", 1, dst.remaining());
+        dst.flip();
+        assertEquals(1, dst.get());
+        assertEquals(2, dst.get());
     }
 }

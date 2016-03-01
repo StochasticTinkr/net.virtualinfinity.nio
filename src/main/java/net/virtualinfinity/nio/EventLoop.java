@@ -6,7 +6,12 @@ import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Date;
+import java.util.Iterator;
+import java.util.PriorityQueue;
+import java.util.Queue;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -23,9 +28,18 @@ public final class EventLoop implements Closeable {
     private final Queue<Event> events = new PriorityQueue<>();
     private volatile boolean running;
 
+    private static class DefaultExceptionHandler implements ExceptionHandler<IOException> {
+        @Override
+        public void handleException(SelectionKey key, IOException exception) throws IOException {
+            throw exception;
+        }
+    }
+
+    private static final ExceptionHandler<IOException> defaultExceptionHandler = new DefaultExceptionHandler();
+
     private EventLoop(Selector selector, ExceptionHandler<IOException> handler) {
         this.selector = selector;
-        this.handler = handler == null ? (key, e) -> { throw e; } : handler;
+        this.handler = handler == null ? defaultExceptionHandler : handler;
     }
 
     /**
@@ -135,7 +149,11 @@ public final class EventLoop implements Closeable {
     private Event executePendingEvents() {
         final Collection<Runnable> toRun = new ArrayList<>();
         final Event nextEvent = getReadyToRun(toRun);
-        toRun.forEach(Runnable::run);
+
+        for (Runnable runnable : toRun) {
+            runnable.run();
+        }
+
         return nextEvent;
     }
 

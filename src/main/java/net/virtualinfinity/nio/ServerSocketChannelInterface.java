@@ -3,7 +3,6 @@ package net.virtualinfinity.nio;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.SelectableChannel;
-import java.nio.channels.SocketChannel;
 
 /**
  * @author <a href='mailto:Daniel@coloraura.com'>Daniel Pitts</a>

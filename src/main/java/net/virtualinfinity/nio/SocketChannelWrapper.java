@@ -3,14 +3,21 @@ package net.virtualinfinity.nio;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.channels.SelectableChannel;
 import java.nio.channels.SocketChannel;
 
 /**
  * @author <a href='mailto:Daniel@coloraura.com'>Daniel Pitts</a>
  */
 public class SocketChannelWrapper implements SocketChannelInterface {
-    public static final ChannelProvider<SocketChannelInterface> PROVIDER = () -> new SocketChannelWrapper(java.nio.channels.SocketChannel.open());
+    private static class DefaultChannelProvider implements ChannelProvider<SocketChannelInterface> {
+        @Override
+        public SocketChannelInterface open() throws IOException {
+            return new SocketChannelWrapper(SocketChannel.open());
+        }
+    }
+
+    public static final ChannelProvider<SocketChannelInterface> PROVIDER = new DefaultChannelProvider();
+
     private final SocketChannel channel;
 
     public SocketChannelWrapper(SocketChannel channel) {

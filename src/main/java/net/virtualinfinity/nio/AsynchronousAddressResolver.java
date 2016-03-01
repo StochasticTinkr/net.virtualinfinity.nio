@@ -3,7 +3,11 @@ package net.virtualinfinity.nio;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
-import java.util.concurrent.*;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Executor;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 /**
@@ -33,7 +37,8 @@ public class AsynchronousAddressResolver {
      * @param maximumConcurrency the maximum number of threads.
      */
     public AsynchronousAddressResolver(int maximumConcurrency) {
-        service = new ThreadPoolExecutor(1, maximumConcurrency, 60, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
+        final BlockingQueue<Runnable> runnableLinkedBlockingQueue = new LinkedBlockingQueue<>();
+        service = new ThreadPoolExecutor(1, maximumConcurrency, 60, TimeUnit.SECONDS, runnableLinkedBlockingQueue);
     }
 
     /**
@@ -49,11 +54,19 @@ public class AsynchronousAddressResolver {
      * @param port The port number to pass to the InetSocketAddress.
      * @param completed The function to call when the lookup is complete.
      */
-    public void lookupInetSocketAddress(EventLoop eventLoop, String hostname, int port, Consumer<InetSocketAddress> completed) {
-        service.execute(() -> {
-            final InetSocketAddress resolved = hostname == null ?
-                new InetSocketAddress(port) : new InetSocketAddress(hostname, port);
-            eventLoop.invokeLater(() -> completed.accept(resolved));
+    public void lookupInetSocketAddress(final EventLoop eventLoop, final String hostname, final int port, final Consumer<InetSocketAddress> completed) {
+        service.execute(new Runnable() {
+            @Override
+            public void run() {
+                final InetSocketAddress resolved = hostname == null ?
+                        new InetSocketAddress(port) : new InetSocketAddress(hostname, port);
+                eventLoop.invokeLater(new Runnable() {
+                    @Override
+                    public void run() {
+                        completed.accept(resolved);
+                    }
+                });
+            }
         });
     }
     /**
@@ -69,13 +82,21 @@ public class AsynchronousAddressResolver {
      * @param completed The function to call when the lookup is complete.
      * @param onUnknown The function to call when lookup fails.
      */
-    public void lookupInetAddress(EventLoop eventLoop, String hostname, Consumer<InetAddress[]> completed, Runnable onUnknown) {
-        service.execute(() -> {
-            try {
-                final InetAddress[] resolved = InetAddress.getAllByName(hostname);
-                eventLoop.invokeLater(() -> completed.accept(resolved));
-            } catch (UnknownHostException e) {
-                eventLoop.invokeLater(onUnknown);
+    public void lookupInetAddress(final EventLoop eventLoop, final String hostname, final Consumer<InetAddress[]> completed, final Runnable onUnknown) {
+        service.execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    final InetAddress[] resolved = InetAddress.getAllByName(hostname);
+                    eventLoop.invokeLater(new Runnable() {
+                        @Override
+                        public void run() {
+                            completed.accept(resolved);
+                        }
+                    });
+                } catch (UnknownHostException e) {
+                    eventLoop.invokeLater(onUnknown);
+                }
             }
         });
     }
