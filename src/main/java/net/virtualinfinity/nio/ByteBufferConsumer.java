@@ -2,6 +2,7 @@ package net.virtualinfinity.nio;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+
 /**
  * A consumer of byte buffers.  The consume method is intentionally mimics the semantics of
  * {@link java.nio.channels.WritableByteChannel#write(ByteBuffer)}.

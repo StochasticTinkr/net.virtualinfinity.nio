@@ -2,7 +2,11 @@ package net.virtualinfinity.nio;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 
 /**
  * A byte buffer queue useful for non blocking output. This output buffer keeps a queue of
@@ -59,18 +63,22 @@ public final class OutputBuffer {
      * @return The amount of data copied, which is always the full amount of <code>data.remaining()</code> when the
      *         method is invoked.
      */
-    public int append(ByteBuffer data) {
+    public int append(final ByteBuffer data) {
         if (data == null) {
             throw new NullPointerException("data");
         }
+
         final int count = data.remaining();
         remaining += count;
         if (!buffers.isEmpty()) {
             BufferUtils.putWhatFits(buffers.getLast(), data);
         }
+
         appendRemaining(data);
         if (remaining == count) {
-            newDataListeners.forEach(Runnable::run);
+            for (Runnable runnable : newDataListeners) {
+                runnable.run();
+            }
         }
         return count;
     }
@@ -143,6 +151,7 @@ public final class OutputBuffer {
         if (!data.hasRemaining()) {
             return;
         }
+
         buffers.add(copyOf(data, Math.max(minimumBufferSize, data.remaining())));
     }
 
@@ -172,6 +181,7 @@ public final class OutputBuffer {
     public void removeNewDataListener(Runnable listener) {
         newDataListeners.remove(listener);
     }
+
     public void addNewDataListener(Runnable listener) {
         newDataListeners.add(listener);
 

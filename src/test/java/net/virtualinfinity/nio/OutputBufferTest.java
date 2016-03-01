@@ -5,7 +5,10 @@ import org.junit.Test;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
 
 /**
  * @author <a href='mailto:Daniel@coloraura.com'>Daniel Pitts</a>
@@ -21,12 +24,22 @@ public class OutputBufferTest {
 
         assertEquals(18, buffer.remaining());
         final ByteBuffer output = ByteBuffer.allocate(9);
-        buffer.send(src -> BufferUtils.putWhatFits(output, src));
+        buffer.send(new ByteBufferConsumer() {
+            @Override
+            public void accept(ByteBuffer src) throws IOException {
+                BufferUtils.putWhatFits(output, src);
+            }
+        });
         assertEquals(9, buffer.remaining());
         assertTrue(buffer.hasRemaining());
         assertArrayEquals(new byte[]{1, 2, 3, 4, 5, 6, 7, 8, 9}, output.array());
         output.clear();
-        buffer.send(output::put);
+        buffer.send(new ByteBufferConsumer() {
+            @Override
+            public void accept(ByteBuffer src) throws IOException {
+                output.put(src);
+            }
+        });
         assertEquals(0, buffer.remaining());
         assertFalse(buffer.hasRemaining());
         assertArrayEquals(new byte[]{10, 11, 12, 13, 14, 15, 16, 17, 18}, output.array());

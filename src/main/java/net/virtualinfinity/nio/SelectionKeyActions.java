@@ -22,6 +22,5 @@ public interface SelectionKeyActions extends SelectionKeyHandler {
      *
      * @param selectionKey the selection key.
      */
-    default void setSelectionKey(SelectionKeyInterface selectionKey) {
-    }
+    void setSelectionKey(SelectionKeyInterface selectionKey);
 }

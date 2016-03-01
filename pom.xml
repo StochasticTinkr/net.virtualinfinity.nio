@@ -51,8 +51,8 @@
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <target>1.8</target>
-                    <source>1.8</source>
+                    <target>1.7</target>
+                    <source>1.7</source>
                 </configuration>
                 <version>2.3.2</version>
             </plugin>
@@ -71,24 +71,7 @@
                 </executions>
             </plugin>
         </plugins>
-        <extensions>
-            <!-- Enabling the use of SSH -->
-            <extension>
-                <groupId>org.apache.maven.wagon</groupId>
-                <artifactId>wagon-ssh-external</artifactId>
-                <version>1.0-beta-6</version>
-            </extension>
-        </extensions>
     </build>
-    <reporting>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <version>2.10.3</version>
-            </plugin>
-        </plugins>
-    </reporting>
     <profiles>
         <profile>
             <id>release</id>

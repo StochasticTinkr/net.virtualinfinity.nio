@@ -12,9 +12,11 @@ public class SocketSelectionActions implements SelectionKeyActions {
     private final SocketChannelInterface channel;
     private final ConnectionListener connectionListener;
     private final ByteBufferConsumer receiver;
+    private final ByteBufferConsumer channelWriter = new ChannelWriteConsumer();
     private final boolean sendAllBeforeReading;
     private final ByteBuffer inputBuffer;
     private final OutputBuffer outputBuffer;
+    private final Runnable updateInterestsAction = new UpdateInterestsAction();
     private SelectionKeyInterface selectionKey;
 
     /**
@@ -57,11 +59,13 @@ public class SocketSelectionActions implements SelectionKeyActions {
     @Override
     public void setSelectionKey(SelectionKeyInterface selectionKey) {
         if (this.selectionKey != null && selectionKey == null) {
-            outputBuffer.removeNewDataListener(this::updateInterests);
+            outputBuffer.removeNewDataListener(this.updateInterestsAction);
         }
+
         if (this.selectionKey == null && selectionKey != null) {
-            outputBuffer.addNewDataListener(this::updateInterests);
+            outputBuffer.addNewDataListener(this.updateInterestsAction);
         }
+
         this.selectionKey = selectionKey;
     }
 
@@ -70,7 +74,7 @@ public class SocketSelectionActions implements SelectionKeyActions {
         try {
             doSelectedActions();
         } finally {
-            updateInterests();
+            this.updateInterestsAction.run();
         }
     }
 
@@ -115,13 +119,15 @@ public class SocketSelectionActions implements SelectionKeyActions {
 
     private void doReadWriteActions() throws IOException {
         if (isWritable()) {
-            outputBuffer.send(channel()::write);
+            outputBuffer.send(this.channelWriter);
         }
+
         if (isReadable()) {
             if (channel().read(inputBuffer) < 0) {
                 connectionListener.disconnected();
                 channel.close();
             }
+
             inputBuffer.flip();
             receiver.accept(inputBuffer);
             inputBuffer.compact();
@@ -132,10 +138,19 @@ public class SocketSelectionActions implements SelectionKeyActions {
         return channel;
     }
 
-    private void updateInterests() {
-        if (selectionKey != null && selectionKey.isValid()) {
-            //noinspection MagicConstant
-            selectionKey.interestOps(interestOps());
+    private class UpdateInterestsAction implements Runnable {
+        @Override
+        public void run() {
+            if (selectionKey != null && selectionKey.isValid()) {
+                selectionKey.interestOps(interestOps());
+            }
+        }
+    }
+
+    private class ChannelWriteConsumer implements ByteBufferConsumer {
+        @Override
+        public void accept(final ByteBuffer src) throws IOException {
+            channel().write(src);
         }
     }
 

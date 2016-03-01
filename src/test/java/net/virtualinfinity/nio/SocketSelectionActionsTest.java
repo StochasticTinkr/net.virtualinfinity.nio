@@ -18,7 +18,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 /**
  * @author <a href='mailto:Daniel@coloraura.com'>Daniel Pitts</a>
@@ -31,14 +31,19 @@ public class SocketSelectionActionsTest {
     private static final String READABLE = "readable";
     public static final String NOT_WRITABLE = "notWritable";
     public static final String NOT_READABLE = "notReadable";
+
     @Rule
     public JUnitRuleMockery context = new JUnitRuleMockery();
+
     @Mock
     private SocketChannelInterface channel;
+
     @Mock
     private ConnectionListener connectionListener;
+
     @Mock
     private ByteBufferConsumer receiver;
+
     @Mock
     private SelectionKeyInterface selectionKey;
 
@@ -47,6 +52,7 @@ public class SocketSelectionActionsTest {
     private final States channelState = context.states("channel").startsAs(CONNECTION_PENDING);
     private final States outputState = context.states("channel").startsAs(NOT_WRITABLE);
     private final States inputState = context.states("channel").startsAs(NOT_READABLE);
+
     @Auto
     private Sequence sequence;
 
@@ -58,6 +64,7 @@ public class SocketSelectionActionsTest {
             oneOf(channel).finishConnect(); will(returnValue(true)); then(channelState.is(CONNECTED));
             oneOf(connectionListener).connected();
         }});
+
         final SocketSelectionActions actions = createActions(INPUT_BUFFER_SIZE, true);
         assertEquals(SelectionKey.OP_CONNECT, actions.interestOps());
         actions.selected();
@@ -85,11 +92,19 @@ public class SocketSelectionActionsTest {
         channelState.startsAs(CONNECTED);
         context.checking(expectations());
         context.checking(new Expectations() {{
-            oneOf(channel).read(with.is(Expectations.anything())); will(simulateChannelRead(INPUT_BUFFER_SIZE, (byte) 0));
-            oneOf(channel).read(with.is(Expectations.anything())); will(simulateChannelRead(2, (byte)1));
-            exactly(2).of(receiver).accept(with.is(Expectations.anything())); will(consumeByteBuffer());
-            oneOf(channel).write(with.is(Expectations.anything())); will(consumeByteBufferAndReturn(0));
+            oneOf(channel).read((ByteBuffer)with.is(Expectations.anything()));
+            will(simulateChannelRead(INPUT_BUFFER_SIZE, (byte) 0));
+
+            oneOf(channel).read((ByteBuffer)with.is(Expectations.anything()));
+            will(simulateChannelRead(2, (byte)1));
+
+            exactly(2).of(receiver).accept((ByteBuffer)with.is(Expectations.anything()));
+            will(consumeByteBuffer());
+
+            oneOf(channel).write((ByteBuffer)with.is(Expectations.anything()));
+            will(consumeByteBufferAndReturn(0));
         }});
+
         final SocketSelectionActions actions = createActions(INPUT_BUFFER_SIZE, false);
         assertEquals(SelectionKey.OP_READ, actions.interestOps());
         outputBuffer.append(ByteBuffer.allocate(10));
@@ -108,10 +123,16 @@ public class SocketSelectionActionsTest {
         inputState.startsAs(READABLE);
         context.checking(expectations());
         context.checking(new Expectations() {{
-            exactly(2).of(channel).write(with.is(Expectations.anything())); will(consumeByteBufferAndReturn(0)); inSequence(sequence);
-            oneOf(channel).read(with.is(Expectations.anything())); will(simulateChannelRead(INPUT_BUFFER_SIZE, (byte) 0)); inSequence(sequence);
-            oneOf(channel).read(with.is(Expectations.anything())); will(simulateChannelRead(2, (byte) 1)); inSequence(sequence);
-            exactly(2).of(receiver).accept(with.is(Expectations.anything()));
+            exactly(2).of(channel).write((ByteBuffer)with.is(Expectations.anything()));
+            will(consumeByteBufferAndReturn(0)); inSequence(sequence);
+
+            oneOf(channel).read((ByteBuffer)with.is(Expectations.anything()));
+            will(simulateChannelRead(INPUT_BUFFER_SIZE, (byte) 0)); inSequence(sequence);
+
+            oneOf(channel).read((ByteBuffer)with.is(Expectations.anything()));
+            will(simulateChannelRead(2, (byte) 1)); inSequence(sequence);
+
+            exactly(2).of(receiver).accept((ByteBuffer)with.is(Expectations.anything()));
             will(consumeByteBuffer());
         }});
         final SocketSelectionActions actions = createActions(INPUT_BUFFER_SIZE, true);
@@ -145,25 +166,46 @@ public class SocketSelectionActionsTest {
         return new Expectations() {{
             allowing(channel).isOpen();
             will(returnValue(true));
+
             allowing(channel).isConnectionPending();
             will(returnValue(true));
             when(channelState.is(CONNECTION_PENDING));
+
             allowing(channel).isConnectionPending();
             will(returnValue(false));
             when(channelState.isNot(CONNECTION_PENDING));
+
             allowing(selectionKey).isConnectable();
             will(returnValue(true));
             when(channelState.isNot(CONNECTED));
+
             allowing(channel).isConnected();
             will(returnValue(true));
             when(channelState.is(CONNECTED));
+
             allowing(channel).isConnected();
-            will(returnValue(false)); when(channelState.isNot(CONNECTED));
-            allowing(selectionKey).isWritable(); will(returnValue(true)); when(outputState.is(WRITABLE));
-            allowing(selectionKey).isReadable(); will(returnValue(true)); when(inputState.is(READABLE));
-            allowing(selectionKey).isWritable(); will(returnValue(false)); when(outputState.isNot(WRITABLE));
-            allowing(selectionKey).isReadable(); will(returnValue(false)); when(inputState.isNot(READABLE));
-            allowing(selectionKey).isValid(); will(returnValue(true));
+            will(returnValue(false));
+            when(channelState.isNot(CONNECTED));
+
+            allowing(selectionKey).isWritable();
+            will(returnValue(true));
+            when(outputState.is(WRITABLE));
+
+            allowing(selectionKey).isReadable();
+            will(returnValue(true));
+            when(inputState.is(READABLE));
+
+            allowing(selectionKey).isWritable();
+            will(returnValue(false));
+            when(outputState.isNot(WRITABLE));
+
+            allowing(selectionKey).isReadable();
+            will(returnValue(false));
+            when(inputState.isNot(READABLE));
+
+            allowing(selectionKey).isValid();
+            will(returnValue(true));
+
             allowing(selectionKey).interestOps(with.intIs(anything()));
         }};
     }

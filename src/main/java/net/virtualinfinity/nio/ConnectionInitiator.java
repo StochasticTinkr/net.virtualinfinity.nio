@@ -4,7 +4,9 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.UnknownHostException;
-import java.nio.channels.*;
+import java.nio.channels.ClosedChannelException;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.ServerSocketChannel;
 import java.util.function.Consumer;
 
 /**
@@ -20,6 +22,7 @@ public final class ConnectionInitiator {
     public ConnectionInitiator() {
         this(new AsynchronousAddressResolver());
     }
+
     public ConnectionInitiator(AsynchronousAddressResolver asynchronousAddressResolver) {
         this(asynchronousAddressResolver, SocketChannelWrapper.PROVIDER, ServerSocketChannelWrapper.PROVIDER);
     }
@@ -44,8 +47,13 @@ public final class ConnectionInitiator {
      * @param sendAllBeforeReading Whether or not the outputBuffer should be fully flushed before new input is processed.
      * @param inputBufferSize The input buffer size.
      */
-    public void connect(EventLoop eventLoop, String hostname, int port, ConnectionListener connectionListener, ByteBufferConsumer receiver, OutputBuffer outputBuffer, boolean sendAllBeforeReading, int inputBufferSize) {
-        connect(eventLoop, hostname, port, connectionListener, socketChannel -> connectToSocketSelectionActions(eventLoop, socketChannel, connectionListener, receiver, outputBuffer, sendAllBeforeReading, inputBufferSize));
+    public void connect(final EventLoop eventLoop, final String hostname, final int port, final ConnectionListener connectionListener, final ByteBufferConsumer receiver, final OutputBuffer outputBuffer, final boolean sendAllBeforeReading, final int inputBufferSize) {
+        connect(eventLoop, hostname, port, connectionListener, new Consumer<SocketChannelInterface>() {
+            @Override
+            public void accept(SocketChannelInterface socketChannel) {
+                connectToSocketSelectionActions(eventLoop, socketChannel, connectionListener, receiver, outputBuffer, sendAllBeforeReading, inputBufferSize);
+            }
+        });
     }
 
     /**
@@ -61,28 +69,28 @@ public final class ConnectionInitiator {
      * @param connectionListener The connection listener to be notified about connections.
      * @param connectionInitiated The object to be notified after the connection has been initiated.
      */
-    public void connect(EventLoop eventLoop, String hostname, int port, ConnectionListener connectionListener, Consumer<SocketChannelInterface> connectionInitiated) {
-        addressResolver.lookupInetSocketAddress(eventLoop, hostname, port, address -> {
-            try {
-                checkAddress(address);
-                final SocketChannelInterface channel = socketChannelProvider.open();
-                channel.configureBlocking(false);
-                channel.connect(address);
-                connectionListener.connecting();
-                connectionInitiated.accept(channel);
-            } catch (IOException e) {
-                connectionListener.connectionFailed(e);
+    public void connect(final EventLoop eventLoop, final String hostname, final int port, final ConnectionListener connectionListener, final Consumer<SocketChannelInterface> connectionInitiated) {
+        addressResolver.lookupInetSocketAddress(eventLoop, hostname, port, new Consumer<InetSocketAddress>() {
+            @Override
+            public void accept(InetSocketAddress address) {
+                try {
+                    checkAddress(address);
+                    final SocketChannelInterface channel = socketChannelProvider.open();
+                    channel.configureBlocking(false);
+                    channel.connect(address);
+                    connectionListener.connecting();
+                    connectionInitiated.accept(channel);
+                } catch (IOException e) {
+                    connectionListener.connectionFailed(e);
+                }
             }
         });
     }
 
-    private void connectToSocketSelectionActions(EventLoop eventLoop, SocketChannelInterface socketChannel, ConnectionListener connectionListener, ByteBufferConsumer receiver, OutputBuffer outputBuffer, boolean sendAllBeforeReading, int inputBufferSize) {
+    private void connectToSocketSelectionActions(final EventLoop eventLoop, final SocketChannelInterface socketChannel, final ConnectionListener connectionListener, final ByteBufferConsumer receiver, final OutputBuffer outputBuffer, final boolean sendAllBeforeReading, final int inputBufferSize) {
         try {
-            new SocketSelectionActions(socketChannel,
-                connectionListener,
-                receiver,
-                outputBuffer, inputBufferSize, sendAllBeforeReading
-            ).register(eventLoop);
+            SocketSelectionActions socketSelectionActions = new SocketSelectionActions(socketChannel, connectionListener, receiver, outputBuffer, inputBufferSize, sendAllBeforeReading);
+            socketSelectionActions.register(eventLoop);
         } catch (final ClosedChannelException e) {
             connectionListener.connectionFailed(e);
         }
@@ -97,22 +105,29 @@ public final class ConnectionInitiator {
      * @param incomingConnection the handler of incoming connections.
      * @param exceptionHandler The handler of exceptions.
      */
-    public void bind(EventLoop eventLoop, String hostname, int port, int backlog, Consumer<SocketChannelInterface> incomingConnection, ExceptionHandler<IOException> exceptionHandler) {
-        addressResolver.lookupInetSocketAddress(eventLoop, hostname, port, address -> doBind(eventLoop, backlog, incomingConnection, exceptionHandler, address));
+    public void bind(final EventLoop eventLoop, final String hostname, final int port, final int backlog, final Consumer<SocketChannelInterface> incomingConnection, final ExceptionHandler<IOException> exceptionHandler) {
+        addressResolver.lookupInetSocketAddress(eventLoop, hostname, port, new Consumer<InetSocketAddress>() {
+            @Override
+            public void accept(InetSocketAddress address) {
+                doBind(eventLoop, backlog, incomingConnection, exceptionHandler, address);
+            }
+        });
     }
 
-    private void doBind(EventLoop eventLoop, int backlog, Consumer<SocketChannelInterface> incomingConnection, ExceptionHandler<IOException> exceptionHandler, InetSocketAddress address) {
+    private void doBind(final EventLoop eventLoop, final int backlog, final Consumer<SocketChannelInterface> incomingConnection, final ExceptionHandler<IOException> exceptionHandler, final InetSocketAddress address) {
         try {
             final ServerSocketChannelInterface channel = serverSocketChannelProvider.open();
             channel.bind(address, backlog);
-            eventLoop.registerHandler(channel.selectableChannel(), SelectionKey.OP_ACCEPT, () -> {
-                final SocketChannelInterface accept = channel.accept();
-                if (accept != null) {
-                    accept.configureBlocking(false);
-                    incomingConnection.accept(accept);
+            eventLoop.registerHandler(channel.selectableChannel(), SelectionKey.OP_ACCEPT, new SelectionKeyHandler() {
+                @Override
+                public void selected() throws IOException {
+                    final SocketChannelInterface accept = channel.accept();
+                    if (accept != null) {
+                        accept.configureBlocking(false);
+                        incomingConnection.accept(accept);
+                    }
                 }
             });
-
         } catch (final IOException e) {
             try {
                 exceptionHandler.handleException(null, e);
