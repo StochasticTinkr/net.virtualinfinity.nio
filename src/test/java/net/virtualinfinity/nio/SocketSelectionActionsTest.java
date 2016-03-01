@@ -18,7 +18,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 /**
  * @author <a href='mailto:Daniel@coloraura.com'>Daniel Pitts</a>
@@ -166,25 +166,46 @@ public class SocketSelectionActionsTest {
         return new Expectations() {{
             allowing(channel).isOpen();
             will(returnValue(true));
+
             allowing(channel).isConnectionPending();
             will(returnValue(true));
             when(channelState.is(CONNECTION_PENDING));
+
             allowing(channel).isConnectionPending();
             will(returnValue(false));
             when(channelState.isNot(CONNECTION_PENDING));
+
             allowing(selectionKey).isConnectable();
             will(returnValue(true));
             when(channelState.isNot(CONNECTED));
+
             allowing(channel).isConnected();
             will(returnValue(true));
             when(channelState.is(CONNECTED));
+
             allowing(channel).isConnected();
-            will(returnValue(false)); when(channelState.isNot(CONNECTED));
-            allowing(selectionKey).isWritable(); will(returnValue(true)); when(outputState.is(WRITABLE));
-            allowing(selectionKey).isReadable(); will(returnValue(true)); when(inputState.is(READABLE));
-            allowing(selectionKey).isWritable(); will(returnValue(false)); when(outputState.isNot(WRITABLE));
-            allowing(selectionKey).isReadable(); will(returnValue(false)); when(inputState.isNot(READABLE));
-            allowing(selectionKey).isValid(); will(returnValue(true));
+            will(returnValue(false));
+            when(channelState.isNot(CONNECTED));
+
+            allowing(selectionKey).isWritable();
+            will(returnValue(true));
+            when(outputState.is(WRITABLE));
+
+            allowing(selectionKey).isReadable();
+            will(returnValue(true));
+            when(inputState.is(READABLE));
+
+            allowing(selectionKey).isWritable();
+            will(returnValue(false));
+            when(outputState.isNot(WRITABLE));
+
+            allowing(selectionKey).isReadable();
+            will(returnValue(false));
+            when(inputState.isNot(READABLE));
+
+            allowing(selectionKey).isValid();
+            will(returnValue(true));
+
             allowing(selectionKey).interestOps(with.intIs(anything()));
         }};
     }
