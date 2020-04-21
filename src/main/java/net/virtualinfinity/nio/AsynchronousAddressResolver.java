@@ -1,9 +1,10 @@
 package net.virtualinfinity.nio;
 
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.UnknownHostException;
-import java.util.concurrent.*;
+import java.util.concurrent.Executor;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 /**
@@ -12,9 +13,7 @@ import java.util.function.Consumer;
  *
  * This version of this class uses an Executor to offload the work to another thread, future versions *may* use implement
  * the DNS lookup protocol directly.
- *
- * @author <a href='mailto:Daniel@coloraura.com'>Daniel Pitts</a>
- */
+*/
 public class AsynchronousAddressResolver {
     private final Executor service;
 
@@ -37,7 +36,7 @@ public class AsynchronousAddressResolver {
     }
 
     /**
-     * Asynchronously look up the given hostname, and create a InetSockAddress for it (with the given port).
+     * Asynchronously look up the given hostname, and create a {@link InetSocketAddress} for it (with the given port).
      *
      * The resolved address will be sent to the consumer from within the {@link EventLoop#run} method.
      *
@@ -46,7 +45,7 @@ public class AsynchronousAddressResolver {
      *
      * @param eventLoop The event loop
      * @param hostname The hostname to look up.
-     * @param port The port number to pass to the InetSocketAddress.
+     * @param port The port number to pass to the {@link InetSocketAddress}.
      * @param completed The function to call when the lookup is complete.
      */
     public void lookupInetSocketAddress(EventLoop eventLoop, String hostname, int port, Consumer<InetSocketAddress> completed) {
@@ -56,28 +55,4 @@ public class AsynchronousAddressResolver {
             eventLoop.invokeLater(() -> completed.accept(resolved));
         });
     }
-    /**
-     * Asynchronously look up InetAddress[] objects for the given hostname.
-     *
-     * The resolved address will be sent to the consumer from within the {@link EventLoop#run} method.
-     *
-     * This implementation offloads the work to a thread-pool, but future version may utilize the EventLoop for
-     * an NIO based BIND protocol implementation.
-     *
-     * @param eventLoop The event loop
-     * @param hostname The hostname to look up.
-     * @param completed The function to call when the lookup is complete.
-     * @param onUnknown The function to call when lookup fails.
-     */
-    public void lookupInetAddress(EventLoop eventLoop, String hostname, Consumer<InetAddress[]> completed, Runnable onUnknown) {
-        service.execute(() -> {
-            try {
-                final InetAddress[] resolved = InetAddress.getAllByName(hostname);
-                eventLoop.invokeLater(() -> completed.accept(resolved));
-            } catch (UnknownHostException e) {
-                eventLoop.invokeLater(onUnknown);
-            }
-        });
-    }
-
 }

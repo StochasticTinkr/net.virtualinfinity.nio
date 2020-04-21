@@ -21,9 +21,7 @@ import java.util.*;
  *
  * @see #append(ByteBuffer)
  * @see #send(ByteBufferConsumer)
- *
- * @author <a href='mailto:Daniel@coloraura.com'>Daniel Pitts</a>
- */
+*/
 public final class OutputBuffer {
     private final List<Runnable> newDataListeners = new ArrayList<>();
     private final int minimumBufferSize;

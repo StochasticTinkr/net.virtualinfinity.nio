@@ -4,9 +4,7 @@ import java.nio.ByteBuffer;
 
 /**
  * Contains some methods for buffers.
- *
- * @author <a href='mailto:Daniel@coloraura.com'>Daniel Pitts</a>
- */
+*/
 public class BufferUtils {
     /**
      * Puts as much of <code>src</code> as will fit in <code>dest</code>.

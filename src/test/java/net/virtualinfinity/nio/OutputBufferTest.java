@@ -1,15 +1,21 @@
 package net.virtualinfinity.nio;
 
-import org.junit.Test;
+//import org.junit.Test;
+//
+//import java.io.IOException;
+//import java.nio.ByteBuffer;
+//
+//import static org.junit.Assert.*;
+
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * @author <a href='mailto:Daniel@coloraura.com'>Daniel Pitts</a>
- */
+*/
 public class OutputBufferTest {
 
     @Test

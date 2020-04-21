@@ -8,24 +8,30 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.function.LongSupplier;
 
 /**
  * Provides the functionality of an event loop that can listen to {@link SelectableChannel}, as well as execute events
  * at some point in the future.
  *
  * The { @link EventLoop#run() } method does the work.  This class is thread safe.
- *
- * @author <a href='mailto:Daniel@coloraura.com'>Daniel Pitts</a>
- */
+*/
 public final class EventLoop implements Closeable {
     private final Selector selector;
     private final ExceptionHandler<IOException> handler;
     private final Queue<Event> events = new PriorityQueue<>();
+    private final LongSupplier nanoTimeNowSupplier;
     private volatile boolean running;
 
-    private EventLoop(Selector selector, ExceptionHandler<IOException> handler) {
-        this.selector = selector;
-        this.handler = handler == null ? (key, e) -> { throw e; } : handler;
+    /**
+     * Creates an EventLoop instance with the default exception handler.
+     *
+     * @throws IOException if there is an error opening a selector.
+     *
+     * @see #EventLoop(ExceptionHandler)
+     */
+    public EventLoop() throws IOException {
+        this(Selector.open(), null);
     }
 
     /**
@@ -41,15 +47,14 @@ public final class EventLoop implements Closeable {
         this(Selector.open(), handler);
     }
 
-    /**
-     * Creates an EventLoop instance with the default exception handler.
-     *
-     * @throws IOException if there is an error opening a selector.
-     *
-     * @see #EventLoop(ExceptionHandler)
-     */
-    public EventLoop() throws IOException {
-        this(Selector.open(), null);
+    private EventLoop(Selector selector, ExceptionHandler<IOException> handler) {
+        this(selector, handler, System::nanoTime);
+    }
+
+    EventLoop(Selector selector, ExceptionHandler<IOException> handler, LongSupplier nanoTimeNowSupplier) {
+        this.selector = selector;
+        this.handler = handler == null ? (key, e) -> { throw e; } : handler;
+        this.nanoTimeNowSupplier = nanoTimeNowSupplier;
     }
 
     /**
@@ -85,7 +90,7 @@ public final class EventLoop implements Closeable {
     }
 
     private long timeout(Event nextEvent) {
-        return nextEvent != null ? nextEvent.timeRemaining(TimeUnit.MILLISECONDS) : 0;
+        return nextEvent != null ? nextEvent.timeRemaining(TimeUnit.MILLISECONDS, nanoTimeNowSupplier.getAsLong()) : 0;
     }
 
     /**
@@ -143,7 +148,7 @@ public final class EventLoop implements Closeable {
         synchronized (events) {
             while (events.peek() != null) {
                 final Event nextEvent = events.peek();
-                final long nextEventTime = nextEvent.timeRemaining(TimeUnit.MILLISECONDS);
+                final long nextEventTime = nextEvent.timeRemaining(TimeUnit.MILLISECONDS, nanoTimeNowSupplier.getAsLong());
                 if (nextEventTime > 0) {
                     return nextEvent;
                 }
@@ -170,22 +175,11 @@ public final class EventLoop implements Closeable {
      * thread that called {@link #run()} on this object.
      *
      * @param runnable the command to run
-     * @param absoluteTime the earliest time to run it.
-     */
-    public void invokeAfter(Runnable runnable, Date absoluteTime) {
-        invokeAfter(runnable, absoluteTime.getTime() - System.currentTimeMillis(), TimeUnit.MILLISECONDS);
-    }
-
-    /**
-     * Enqueue the given runnable to run after a specific point of time.  The Runnable will be executed from the
-     * thread that called {@link #run()} on this object.
-     *
-     * @param runnable the command to run
      * @param timeInFuture the amount of time in the future
      * @param timeInFutureUnit the unit that the timeInFuture value is of.
      */
     public void invokeAfter(Runnable runnable, long timeInFuture, TimeUnit timeInFutureUnit) {
-        final Event e = new Event(System.nanoTime() + TimeUnit.NANOSECONDS.convert(timeInFuture, timeInFutureUnit), runnable);
+        final Event e = new Event(nanoTimeNowSupplier.getAsLong() + TimeUnit.NANOSECONDS.convert(timeInFuture, timeInFutureUnit), runnable);
         synchronized (events) {
             events.add(e);
             selector.wakeup();
@@ -232,12 +226,12 @@ public final class EventLoop implements Closeable {
      *
      * @throws ClosedChannelException if the channel is closed.
      */
-    private SelectionKeyInterface doRegister(SelectableChannel channel, int ops, SelectionKeyHandler handler) throws ClosedChannelException {
-        return new SelectionKeyWrapper(channel.register(selector, ops, handler));
+    private SelectionKey doRegister(SelectableChannel channel, int ops, SelectionKeyHandler handler) throws ClosedChannelException {
+        return channel.register(selector, ops, handler);
     }
 
     /**
-     * Closes the selector, causing the event loop to terminate.
+     * Closes the event loop.
      */
     @Override
     public void close() throws IOException {
@@ -248,17 +242,17 @@ public final class EventLoop implements Closeable {
      * Priority queue event item.
      */
     private static class Event implements Comparable<Event>, Runnable {
-        private final long desiredTimeNanos;
+        private final long desiredNanoTime;
         private final Runnable handler;
 
-        public Event(long desiredTimeNanos, Runnable handler) {
-            this.desiredTimeNanos = desiredTimeNanos;
+        public Event(long desiredNanoTime, Runnable handler) {
+            this.desiredNanoTime = desiredNanoTime;
             this.handler = handler;
         }
 
         @Override
         public int compareTo(Event event) {
-            return Long.compare(timeRemainingNanos(), event.timeRemainingNanos());
+            return Long.compare(desiredNanoTime, event.desiredNanoTime);
         }
 
         @Override
@@ -266,12 +260,12 @@ public final class EventLoop implements Closeable {
             handler.run();
         }
 
-        public long timeRemaining(TimeUnit time) {
-            return time.convert(timeRemainingNanos(), TimeUnit.NANOSECONDS);
+        public long timeRemaining(TimeUnit time, long nowNanoTime) {
+            return time.convert(timeRemainingNanos(nowNanoTime), TimeUnit.NANOSECONDS);
         }
 
-        public long timeRemainingNanos() {
-            return desiredTimeNanos - System.nanoTime();
+        public long timeRemainingNanos(long nanoTime) {
+            return desiredNanoTime - nanoTime;
         }
     }
 }

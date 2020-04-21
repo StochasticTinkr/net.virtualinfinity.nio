@@ -5,9 +5,7 @@ import java.nio.ByteBuffer;
 /**
  * A consumer of byte buffers.  The consume method is intentionally mimics the semantics of
  * {@link java.nio.channels.WritableByteChannel#write(ByteBuffer)}.
- *
- * @author <a href='mailto:Daniel@coloraura.com'>Daniel Pitts</a>
- */
+*/
 @FunctionalInterface
 public interface ByteBufferConsumer {
     /**

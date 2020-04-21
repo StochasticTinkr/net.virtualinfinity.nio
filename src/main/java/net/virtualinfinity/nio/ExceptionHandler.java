@@ -3,13 +3,12 @@ package net.virtualinfinity.nio;
 import java.nio.channels.SelectionKey;
 
 /**
- * An exception handler for exceptions encountered in the EventLoop.
- *
- * @author <a href='mailto:Daniel@coloraura.com'>Daniel Pitts</a>
- */
+ * An exception handler strategy for exceptions encountered in the EventLoop.
+*/
 public interface ExceptionHandler<T extends Throwable> {
     /**
-     * Handle the exception.
+     * Called when an exception happens in the EventLoop.
+     *
      * @param key The SelectionKey being processed when the exception was thrown, or null if the exception occurred during the select() call.
      * @param exception The thrown exception.
      *

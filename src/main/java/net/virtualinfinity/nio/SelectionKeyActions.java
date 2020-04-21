@@ -4,12 +4,10 @@ import java.nio.channels.SelectionKey;
 
 /**
  * A selection key handler that can specify what its interested in.
- *
- * @author <a href='mailto:Daniel@coloraura.com'>Daniel Pitts</a>
- */
+*/
 public interface SelectionKeyActions extends SelectionKeyHandler {
     /**
-     * The interested ops for this listener.
+     * The operations this listener is interested in being notified of.
      *
      * @return the interestOps bitset.
      *
@@ -22,6 +20,6 @@ public interface SelectionKeyActions extends SelectionKeyHandler {
      *
      * @param selectionKey the selection key.
      */
-    default void setSelectionKey(SelectionKeyInterface selectionKey) {
+    default void setSelectionKey(SelectionKey selectionKey) {
     }
 }

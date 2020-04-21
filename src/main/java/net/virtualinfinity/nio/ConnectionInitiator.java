@@ -9,22 +9,20 @@ import java.util.function.Consumer;
 
 /**
  * Provides an asynchronous way to initiate a new connection.
- *
- * @author <a href='mailto:Daniel@coloraura.com'>Daniel Pitts</a>
- */
+*/
 public final class ConnectionInitiator {
     private final AsynchronousAddressResolver addressResolver;
-    private final ChannelProvider<SocketChannelInterface> socketChannelProvider;
-    private final ChannelProvider<ServerSocketChannelInterface> serverSocketChannelProvider;
+    private final ChannelOpener<SocketChannel> socketChannelProvider;
+    private final ChannelOpener<ServerSocketChannel> serverSocketChannelProvider;
 
     public ConnectionInitiator() {
         this(new AsynchronousAddressResolver());
     }
     public ConnectionInitiator(AsynchronousAddressResolver asynchronousAddressResolver) {
-        this(asynchronousAddressResolver, SocketChannelWrapper.PROVIDER, ServerSocketChannelWrapper.PROVIDER);
+        this(asynchronousAddressResolver, SocketChannel::open, ServerSocketChannel::open);
     }
 
-    public ConnectionInitiator(AsynchronousAddressResolver asynchronousAddressResolver, ChannelProvider<SocketChannelInterface> socketChannelProvider, ChannelProvider<ServerSocketChannelInterface> serverSocketChannelProvider) {
+    public ConnectionInitiator(AsynchronousAddressResolver asynchronousAddressResolver, ChannelOpener<SocketChannel> socketChannelProvider, ChannelOpener<ServerSocketChannel> serverSocketChannelProvider) {
         this.addressResolver = asynchronousAddressResolver;
         this.socketChannelProvider = socketChannelProvider;
         this.serverSocketChannelProvider = serverSocketChannelProvider;
@@ -52,7 +50,7 @@ public final class ConnectionInitiator {
      * Non-Blocking open socket and connect to the given host/port.
      * This method will look up the hostname using the given {@link AsynchronousAddressResolver}, and once that resolution
      * is complete, send the socket to the connectionInitiated object.  Note, it is likely that the socket is not
-     * fully pending (eg. {@link SocketChannelInterface#isConnectionPending()} is true). You will need to wait for the connection
+     * fully pending (eg. {@link SocketChannel#isConnectionPending()} is true). You will need to wait for the connection
      * process to complete, and then call finishConnecting.
      *
      * @param eventLoop The event loop that will manage the connection.
@@ -61,11 +59,11 @@ public final class ConnectionInitiator {
      * @param connectionListener The connection listener to be notified about connections.
      * @param connectionInitiated The object to be notified after the connection has been initiated.
      */
-    public void connect(EventLoop eventLoop, String hostname, int port, ConnectionListener connectionListener, Consumer<SocketChannelInterface> connectionInitiated) {
+    public void connect(EventLoop eventLoop, String hostname, int port, ConnectionListener connectionListener, Consumer<SocketChannel> connectionInitiated) {
         addressResolver.lookupInetSocketAddress(eventLoop, hostname, port, address -> {
             try {
                 checkAddress(address);
-                final SocketChannelInterface channel = socketChannelProvider.open();
+                final SocketChannel channel = socketChannelProvider.open();
                 channel.configureBlocking(false);
                 channel.connect(address);
                 connectionListener.connecting();
@@ -76,7 +74,7 @@ public final class ConnectionInitiator {
         });
     }
 
-    private void connectToSocketSelectionActions(EventLoop eventLoop, SocketChannelInterface socketChannel, ConnectionListener connectionListener, ByteBufferConsumer receiver, OutputBuffer outputBuffer, boolean sendAllBeforeReading, int inputBufferSize) {
+    private void connectToSocketSelectionActions(EventLoop eventLoop, SocketChannel socketChannel, ConnectionListener connectionListener, ByteBufferConsumer receiver, OutputBuffer outputBuffer, boolean sendAllBeforeReading, int inputBufferSize) {
         try {
             new SocketSelectionActions(socketChannel,
                 connectionListener,
@@ -97,16 +95,16 @@ public final class ConnectionInitiator {
      * @param incomingConnection the handler of incoming connections.
      * @param exceptionHandler The handler of exceptions.
      */
-    public void bind(EventLoop eventLoop, String hostname, int port, int backlog, Consumer<SocketChannelInterface> incomingConnection, ExceptionHandler<IOException> exceptionHandler) {
+    public void bind(EventLoop eventLoop, String hostname, int port, int backlog, Consumer<SocketChannel> incomingConnection, ExceptionHandler<IOException> exceptionHandler) {
         addressResolver.lookupInetSocketAddress(eventLoop, hostname, port, address -> doBind(eventLoop, backlog, incomingConnection, exceptionHandler, address));
     }
 
-    private void doBind(EventLoop eventLoop, int backlog, Consumer<SocketChannelInterface> incomingConnection, ExceptionHandler<IOException> exceptionHandler, InetSocketAddress address) {
+    private void doBind(EventLoop eventLoop, int backlog, Consumer<SocketChannel> incomingConnection, ExceptionHandler<IOException> exceptionHandler, InetSocketAddress address) {
         try {
-            final ServerSocketChannelInterface channel = serverSocketChannelProvider.open();
+            final ServerSocketChannel channel = serverSocketChannelProvider.open();
             channel.bind(address, backlog);
-            eventLoop.registerHandler(channel.selectableChannel(), SelectionKey.OP_ACCEPT, () -> {
-                final SocketChannelInterface accept = channel.accept();
+            eventLoop.registerHandler(channel, SelectionKey.OP_ACCEPT, () -> {
+                final SocketChannel accept = channel.accept();
                 if (accept != null) {
                     accept.configureBlocking(false);
                     incomingConnection.accept(accept);
